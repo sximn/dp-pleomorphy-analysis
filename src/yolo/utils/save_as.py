@@ -1,5 +1,14 @@
 from geojson import Feature, FeatureCollection, Polygon
+from shapely.geometry import box, mapping
 import json
+import numpy as np
+from tqdm import tqdm
+
+# source: supervision
+def polygon_to_xyxy(polygon: np.ndarray):
+    x_min, y_min = np.min(polygon, axis=0)
+    x_max, y_max = np.max(polygon, axis=0)
+    return np.array([x_min, y_min, x_max, y_max])
 
 def yolo_to_geojson(label_file, image_width, image_height, output_file="bboxes.geojson"):
     features = []
@@ -68,12 +77,55 @@ def yolo_to_geojson(label_file, image_width, image_height, output_file="bboxes.g
     except Exception as e:
         print(f"Error saving GeoJSON file: {e}")
 
+def npy_mask_to_geojson(mask_file, output_file):
+    mask = np.load(mask_file)
+    print(f"Mask shape: {mask.shape}, dtype: {mask.dtype}, min={mask.min()}, max={mask.max()}")
+
+    # unique instances -> we assume each instance has a different value
+    unique_values = np.unique(mask)
+    print(f"Found {len(unique_values)} unique values")
+
+    unique_instances = unique_values[unique_values > 0] # 0 for background
+    features = []
+
+    for i, value in enumerate(tqdm(unique_instances, desc="Processing instances")):
+        # get all pixels belonging to this instance (account for float inconsistencies)
+        instance_mask = (mask == value)
+        rows, cols = np.where(instance_mask)
+
+        if len(rows) == 0:
+            continue  # skip empty masks (shouldn’t happen, but safe)
+
+        x_min, x_max = cols.min(), cols.max()
+        y_min, y_max = rows.min(), rows.max()
+
+        rect = box(float(x_min), float(y_min), float(x_max), float(y_max))
+
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "id": int(i),
+                "mask_value": float(value)
+            },
+            "geometry": mapping(rect)
+        })
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+    with open(output_file, "w") as f:
+        json.dump(geojson, f, indent=2)
+
 
 def main():
-    label_file = "/Users/simon/Documents/000_fiit/09_semester/DP/notebooks/pleomorphy-analysis/dp-pleomorphy-analysis/data/processed/yolo-initial-640/yolo_dataset/labels/train/tile_0008_1280_640.txt"
-    image_width = 640
-    image_height = 640
-    yolo_to_geojson(label_file, image_width, image_height, output_file="/Users/simon/Downloads/yolo-tile_0008_1280_640.geojson")
+    # label_file = "/Users/simon/Downloads/kaggle 3/working/yolo_dataset/labels/train/tile_0013_640_1280.txt"
+    # image_width = 640
+    # image_height = 640
+    # yolo_to_geojson(label_file, image_width, image_height, output_file="/Users/simon/Downloads/tile_0013_640_1280.geojson")
+    mask_file = '/Users/simon/Downloads/stitched_mask (1).npy'
+    npy_mask_to_geojson(mask_file, output_file='/Users/simon/Downloads/stitched_mask.geojson')
 
 
 if __name__ == "__main__":
