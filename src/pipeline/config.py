@@ -5,12 +5,28 @@ from typing import Dict, List, Any
 
 
 @dataclass
+class SegmentationConfig:
+    """Configuration for the Cellpose segmentation subpipeline."""
+    enabled: bool = True
+    patch_size: tuple = (224, 224)
+    stride: tuple = (192, 192)
+    overlap_strategy: str = 'iou_matching'
+    iou_threshold: float = 0.5
+    gpu: bool = True
+    flow_threshold: float = 0.4
+    cellprob_threshold: float = 0.0
+    simplify_tolerance: float = 1.0
+    save_patches: bool = False
+    presegment_tissue: bool = False
+
+@dataclass
 class PipelineConfig:
     """Configuration for the pre-processing pipeline."""
     annotations_dir: str
     wsi_dir: str
     output_dir: str
     interim_dir: str = ""  # Directory to store intermediate cleaned annotations
+    segmentation: SegmentationConfig = field(default_factory=SegmentationConfig)
 
     def __post_init__(self):
         self.annotations_dir = str(Path(self.annotations_dir).resolve())
@@ -44,6 +60,10 @@ class PipelineState:
         self.unmatched_annotations: List[str] = []
         self.extracted_regions: List[str] = []
         self.extraction_errors: List[Dict[str, Any]] = []
+        
+        # Stage 4: Segmentation
+        self.segmentation_results: List[Dict[str, Any]] = []
+        self.segmentation_errors: List[Dict[str, Any]] = []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -62,6 +82,11 @@ class PipelineState:
                 "extracted_regions_count": len(self.extracted_regions),
                 "extracted_regions": self.extracted_regions,
                 "extraction_errors": self.extraction_errors,
+            },
+            "segmentation": {
+                "processed_regions": len(self.segmentation_results),
+                "results": self.segmentation_results,
+                "errors": self.segmentation_errors
             }
         }
 

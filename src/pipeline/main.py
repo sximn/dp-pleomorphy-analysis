@@ -9,6 +9,7 @@ from config import PipelineConfig, PipelineState
 from duplicated_annotations import get_deduped_filepaths
 from label_standardization import standardize_labels
 from region_extractor import extract_regions_for_annotations
+from segmentation import run_segmentation
 
 def run_pipeline(config: PipelineConfig):
     print("=========================================")
@@ -18,6 +19,7 @@ def run_pipeline(config: PipelineConfig):
     print(f"WSI Dir:         {config.wsi_dir}")
     print(f"Output Dir:      {config.output_dir}")
     print(f"Interim Dir:     {config.interim_dir}")
+    print(f"Segmentation:    {'Enabled' if config.segmentation.enabled else 'Disabled'}")
     
     state = PipelineState()
     
@@ -30,6 +32,9 @@ def run_pipeline(config: PipelineConfig):
         
         # Stage 3: Extract image regions for each clean geojson
         extract_regions_for_annotations(clean_files, config.wsi_dir, config.output_dir, state=state)
+        
+        # Stage 4: Run instance segmentation on extracted image regions
+        run_segmentation(state.extracted_regions, config.output_dir, config.segmentation, state=state)
         
     except Exception as e:
         print(f"\nPipeline Failed: {e}")
