@@ -1,0 +1,27 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# Data processing and standard dependencies
+numpy>=1.24,<2.0
+scipy
+pandas>=2.0.0
+tqdm>=4.67.1
+matplotlib>=3.10.6
+opencv-python-headless
+
+# GIS and geometries
+geojson>=3.2.0
+geopandas>=1.1.1
+shapely>=2.1.2
+
+# WSI and image processing
+large-image[openslide]>=1.33.0
+openslide-python>=1.4.2
+tifffile>=2023.12.9,<2025.2.18
+tiatoolbox
+
+# Machine learning and segmentation
+torch
+torchvision
+cellpose
+ultralytics>=8.3.207
+lightly-train
