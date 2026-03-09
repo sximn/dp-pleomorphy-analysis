@@ -58,7 +58,7 @@ class PipelineState:
         # Stage 3: Region Extraction
         self.matched_wsis: int = 0
         self.unmatched_annotations: List[str] = []
-        self.extracted_regions: List[str] = []
+        self.extracted_regions: List[Dict[str, Any]] = []
         self.extraction_errors: List[Dict[str, Any]] = []
         
         # Stage 4: Segmentation

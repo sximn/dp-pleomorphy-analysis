@@ -17,44 +17,77 @@ def load_geojson(geojson_path):
     return geojson_data
 
 
-def find_bounding_rectangle(geojson_data):
+def find_bounding_rectangle(geojson_data, outlier_thresh=3.5, max_outlier_fraction=0.05):
     """
-    Find the bounding rectangle that contains all annotations.
-    Returns: (min_x, min_y, max_x, max_y) - the coordinates of the rectangle
+    Find bounding rectangle while removing spatial outliers.
+
+    Returns:
+        {
+            "original_bbox": (min_x, min_y, max_x, max_y),
+            "filtered_bbox": (min_x, min_y, max_x, max_y),
+            "removed_outliers": int
+        }
     """
+
     all_points = []
-    
-    # Extract all points from all features
+
     for feature in geojson_data.get('features', []):
         geometry = feature.get('geometry', {})
         geometry_type = geometry.get('type', '')
         coordinates = geometry.get('coordinates', [])
-        
+
         if geometry_type == 'Polygon':
-            # For polygons, coordinates are [exterior_ring, interior_ring1, ...]
             for ring in coordinates:
                 all_points.extend(ring)
+
         elif geometry_type == 'MultiPolygon':
-            # For multipolygons, coordinates are [polygon1, polygon2, ...]
             for polygon in coordinates:
                 for ring in polygon:
                     all_points.extend(ring)
+
         elif geometry_type == 'LineString':
             all_points.extend(coordinates)
+
         elif geometry_type == 'Point':
             all_points.append(coordinates)
-    
+
     if not all_points:
         raise ValueError("No valid geometries found in the geojson file")
-    
-    # Convert to numpy array for easier operations
+
     points = np.array(all_points)
-    
-    # Get min and max coordinates
-    min_x, min_y = np.min(points, axis=0)
-    max_x, max_y = np.max(points, axis=0)
-    
-    return min_x, min_y, max_x, max_y
+
+    # ----- ORIGINAL BOUNDING BOX -----
+    orig_min_x, orig_min_y = np.min(points, axis=0)
+    orig_max_x, orig_max_y = np.max(points, axis=0)
+
+    removed_outliers = 0
+    filtered_points = points
+
+    if len(points) > 10:
+        center = np.median(points, axis=0)
+        dist = np.linalg.norm(points - center, axis=1)
+
+        med = np.median(dist)
+        mad = np.median(np.abs(dist - med))
+
+        if mad > 0:
+            modified_z = 0.6745 * (dist - med) / mad
+            mask = np.abs(modified_z) < outlier_thresh
+
+            candidate_outliers = np.sum(~mask)
+
+            if candidate_outliers > 0 and candidate_outliers < max_outlier_fraction * len(points):
+                filtered_points = points[mask]
+                removed_outliers = candidate_outliers
+
+    filt_min_x, filt_min_y = np.min(filtered_points, axis=0)
+    filt_max_x, filt_max_y = np.max(filtered_points, axis=0)
+
+    return {
+        "original_bbox": (orig_min_x, orig_min_y, orig_max_x, orig_max_y),
+        "filtered_bbox": (filt_min_x, filt_min_y, filt_max_x, filt_max_y),
+        "removed_outliers": removed_outliers
+    }
 
 
 def remap_annotations(geojson_data, offset_x, offset_y):
@@ -193,7 +226,15 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
             geojson_data = load_geojson(geojson_path)
             
             # Find boundaries
-            min_x, min_y, max_x, max_y = find_bounding_rectangle(geojson_data)
+            bbox_info = find_bounding_rectangle(geojson_data)
+
+            orig_min_x, orig_min_y, orig_max_x, orig_max_y = bbox_info["original_bbox"]
+            min_x, min_y, max_x, max_y = bbox_info["filtered_bbox"]
+            removed_outliers = bbox_info["removed_outliers"]
+
+            orig_width = orig_max_x - orig_min_x
+            orig_height = orig_max_y - orig_min_y
+
             width = max_x - min_x
             height = max_y - min_y
             
@@ -211,7 +252,18 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
             extract_region_from_wsi(wsi_path, str(output_wsi_path), min_x, min_y, width, height, level=0)
             
             if state:
-                state.extracted_regions.append(str(output_wsi_path))
+                state.extracted_regions.append({
+                    "output_path": str(output_wsi_path),
+                    "original_dimensions": {
+                        "width": float(orig_width),
+                        "height": float(orig_height)
+                    },
+                    "saved_dimensions": {
+                        "width": float(width),
+                        "height": float(height)
+                    },
+                    "removed_outliers": int(removed_outliers)
+                })
                 
         except Exception as e:
             print(f"Error extracting region for {geojson_name}: {e}")
