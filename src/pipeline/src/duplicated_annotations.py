@@ -52,7 +52,7 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
         
     print(f"Found {len(unique_files)} unique files out of {len(all_files)} total files.")
 
-    filtered_files = [f for f in unique_files if f.name not in skip_annotations]
+    filtered_files = [fname for fname in unique_files if fname not in skip_annotations]
     print(f"Skipped {len(unique_files) - len(filtered_files)} annotations.")
 
     return filtered_files
