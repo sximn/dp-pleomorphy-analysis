@@ -262,6 +262,7 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
                         "width": float(width),
                         "height": float(height)
                     },
+                    "area_reduction_factor": (orig_width * orig_height) / (width * height),
                     "removed_outliers": int(removed_outliers)
                 })
                 
