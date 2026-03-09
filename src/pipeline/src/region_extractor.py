@@ -170,6 +170,9 @@ def extract_region_from_wsi(wsi_path, output_path, x_min, y_min, width, height, 
     
     # Convert to RGB numpy array
     tile_rgb = np.array(tile_image.convert("RGB"))
+
+    # remove intermediate image tile to clear memory
+    del tile_image
     
     # Save as OME-TIFF with resolution and compression
     tifffile.imwrite(
@@ -183,6 +186,10 @@ def extract_region_from_wsi(wsi_path, output_path, x_min, y_min, width, height, 
         metadata={'axes': 'YXS'},
         ome=True
     )
+
+    # remove intermediate tile to clear memory
+    del tile_rgb
+
     return output_path
 
 
