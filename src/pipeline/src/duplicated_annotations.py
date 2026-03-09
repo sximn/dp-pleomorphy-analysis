@@ -11,7 +11,7 @@ def file_hash(filepath, hash_algo=hashlib.sha256, chunk_size=4096):
             hash_func.update(chunk)
     return hash_func.hexdigest()
 
-def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str] = None) -> List[str]:
+def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str] | None = None) -> List[str]:
     """
     Finds unique files in the given directory based on their content hash.
     Records statistics into the state object if provided.
@@ -54,7 +54,7 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
     print(f"\t Unique files found: {unique_files}")
     print(f"\t Files to skip: {skip_annotations}")
 
-    filtered_files = [u_file for u_file in unique_files if u_file.name not in skip_annotations]
+    filtered_files = [str(p) for p in unique_files if p.name not in skip_annotations]
     print(f"Skipped {len(unique_files) - len(filtered_files)} annotations.")
 
     return filtered_files
