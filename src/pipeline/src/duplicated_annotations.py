@@ -25,7 +25,7 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
         skip_annotations = []
         
     # Process only geojson files
-    all_files = [f for f in directory_path.iterdir() if f.is_file() and f.suffix == '.geojson' and f.name not in skip_annotations]
+    all_files = [f for f in directory_path.iterdir() if f.is_file() and f.suffix == '.geojson']
     
     if state:
         state.total_annotations_found = len(all_files)
@@ -51,4 +51,8 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
         state.unique_annotations = len(unique_files)
         
     print(f"Found {len(unique_files)} unique files out of {len(all_files)} total files.")
-    return unique_files
+
+    filtered_files = [f for f in unique_files if f.name not in skip_annotations]
+    print(f"Skipped {len(unique_files) - len(filtered_files)} annotations.")
+
+    return filtered_files
