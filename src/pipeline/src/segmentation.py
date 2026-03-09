@@ -6,7 +6,7 @@ from tqdm import tqdm
 from cellpose import models
 from tiatoolbox.tools.patchextraction import SlidingWindowPatchExtractor
 from tiatoolbox.wsicore.wsireader import WSIReader
-from tiatoolbox.utils import imwrite, misc
+from tiatoolbox.utils import misc
 from tiatoolbox import logger
 from scipy import ndimage
 import pickle
@@ -212,7 +212,7 @@ class NucleiSegmentationPipeline:
                 patch_dir.mkdir(exist_ok=True)
                 xs, ys, xe, ye = coords
                 id_coord_label = f"{idx:04d}_XYXY_{xs}_{ys}_{xe}_{ye}"
-                imwrite(str(patch_dir / f"patch_{id_coord_label}.png"), patch)
+                cv2.imwrite(str(patch_dir / f"patch_{id_coord_label}.png"), cv2.cvtColor(patch, cv2.COLOR_RGB2BGR))
                 np.save(str(patch_dir / f"mask_{id_coord_label}.npy"), mask)
 
             del patch
