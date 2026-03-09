@@ -6,7 +6,6 @@ import tifffile
 import openslide
 from shapely.geometry import Polygon, mapping
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 from pathlib import Path
 from typing import List
 
@@ -215,7 +214,7 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
     os.makedirs(output_dir, exist_ok=True)
     
     print("\n--- Stage 3: Region Extraction ---")
-    for geojson_path in tqdm(clean_geojson_files, desc="Extracting Regions"):
+    for geojson_path in clean_geojson_files:
         file_path = Path(geojson_path)
         geojson_name = file_path.name
         
@@ -231,9 +230,11 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
             
         try:
             geojson_data = load_geojson(geojson_path)
+            print(f"\t Loaded GeoJson {geojson_path}")
             
             # Find boundaries
             bbox_info = find_bounding_rectangle(geojson_data)
+            print(f"\t ---- Extracted Bounding Rect for")
 
             orig_min_x, orig_min_y, orig_max_x, orig_max_y = bbox_info["original_bbox"]
             min_x, min_y, max_x, max_y = bbox_info["filtered_bbox"]
@@ -244,14 +245,17 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
 
             width = max_x - min_x
             height = max_y - min_y
+            print(f"\t Rectangle Dimension ({width}, {height})")
             
             # Remap
             remapped_geojson = remap_annotations(geojson_data, min_x, min_y)
+            print(f"\t Annotations remapped")
             remapped_geojson_name = f'remapped_{file_path.name}'
             remapped_geojson_path = Path(output_dir) / remapped_geojson_name
             with open(remapped_geojson_path, 'w', encoding='utf-8') as f:
                 json.dump(remapped_geojson, f, indent=2)
-                
+
+            print(f"\t Annotations Saved")
             # Extract Region
             output_wsi_name = f'remapped_{Path(wsi_path).stem}_{file_path.stem}.ome.tif'
             output_wsi_path = Path(output_dir) / output_wsi_name
