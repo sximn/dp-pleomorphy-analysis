@@ -40,7 +40,8 @@ def run_pipeline(config: PipelineConfig):
         extract_regions_for_annotations(clean_files, config.wsi_dir, config.output_dir, state=state)
         
         # Stage 4: Run instance segmentation on extracted image regions
-        run_segmentation(state.extracted_regions, config.output_dir, config.segmentation, state=state)
+        input_regions = [region["output_path"] for region in state.extracted_regions]
+        run_segmentation(input_regions, config.output_dir, config.segmentation, state=state)
         
     except Exception as e:
         print(f"\nPipeline Failed: {e}")
