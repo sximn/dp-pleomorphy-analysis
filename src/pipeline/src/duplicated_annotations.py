@@ -38,14 +38,14 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
         state.duplicates = duplicates
     
     seen_hashes = set()
-    unique_files = []
+    unique_files: List[Path] = []
     
     print("\n--- Stage 1: Deduplication ---")
     for file_path in tqdm(all_files, desc="Deduplicating Annotations"):
         h = file_hash(file_path)
         if h not in seen_hashes:
             seen_hashes.add(h)
-            unique_files.append(str(file_path.resolve()))
+            unique_files.append(file_path.resolve())
             
     if state:
         state.unique_annotations = len(unique_files)
@@ -54,7 +54,7 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
     print(f"\t Unique files found: {unique_files}")
     print(f"\t Files to skip: {skip_annotations}")
 
-    filtered_files = [fname for fname in unique_files if fname not in skip_annotations]
+    filtered_files = [u_file for u_file in unique_files if u_file.name not in skip_annotations]
     print(f"Skipped {len(unique_files) - len(filtered_files)} annotations.")
 
     return filtered_files
