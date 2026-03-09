@@ -51,6 +51,8 @@ def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str
         state.unique_annotations = len(unique_files)
         
     print(f"Found {len(unique_files)} unique files out of {len(all_files)} total files.")
+    print(f"\t Unique files found: {unique_files}")
+    print(f"\t Files to skip: {skip_annotations}")
 
     filtered_files = [fname for fname in unique_files if fname not in skip_annotations]
     print(f"Skipped {len(unique_files) - len(filtered_files)} annotations.")
