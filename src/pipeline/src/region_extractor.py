@@ -215,6 +215,7 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
     
     print("\n--- Stage 3: Region Extraction ---")
     for geojson_path in clean_geojson_files:
+        print(f"\t----") 
         file_path = Path(geojson_path)
         geojson_name = file_path.name
         
@@ -234,7 +235,7 @@ def extract_regions_for_annotations(clean_geojson_files: List[str], wsi_dir: str
             
             # Find boundaries
             bbox_info = find_bounding_rectangle(geojson_data)
-            print(f"\t ---- Extracted Bounding Rect for")
+            print(f"\t Extracted Bounding Rect for")
 
             orig_min_x, orig_min_y, orig_max_x, orig_max_y = bbox_info["original_bbox"]
             min_x, min_y, max_x, max_y = bbox_info["filtered_bbox"]
