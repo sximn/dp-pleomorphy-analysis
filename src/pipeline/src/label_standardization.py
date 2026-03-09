@@ -73,6 +73,21 @@ LABEL_MAPPING = {
     "referencna bunka (er)": "referenčná bunka - erytrocyt",
 }
 
+def extract_label(properties: dict) -> str | None:
+    """
+    Extract label from annotation properties.
+    Prefer metadata.ANNOTATION_DESCRIPTION over classification.name.
+    """
+    metadata = properties.get("metadata", {})
+    classification = properties.get("classification", {})
+
+    label = metadata.get("ANNOTATION_DESCRIPTION")
+
+    if label and label.strip():
+        return label
+
+    return classification.get("name")
+
 def standardize_labels(input_files: List[str], output_dir: str, state=None) -> List[str]:
     """
     Standardizes the labels in the provided geojson files and saves them to the output_dir.
@@ -93,25 +108,32 @@ def standardize_labels(input_files: List[str], output_dir: str, state=None) -> L
 
         for feature in data.get("features", []):
             properties = feature.get("properties", {})
-            classification = properties.get("classification", {})
-            if "name" not in classification:
+
+            label_raw = extract_label(properties)
+
+            if not label_raw:
                 continue
 
-            cls = classification["name"]
-            cls_norm = normalize_label(cls)
+            cls_norm = normalize_label(label_raw)
 
             if cls_norm not in LABEL_MAPPING:
                 unknown_labels[cls_norm] += 1
                 continue
 
             new_label = LABEL_MAPPING[cls_norm]
-            classification["name"] = new_label
+
+            # ensure classification exists
+            if "classification" not in properties:
+                properties["classification"] = {}
+
+            properties["classification"]["name"] = new_label
+
             final_counts[new_label] += 1
 
         output_path = Path(output_dir) / file.name
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-            
+
         clean_files.append(str(output_path.resolve()))
 
     if state:
@@ -123,7 +145,7 @@ def standardize_labels(input_files: List[str], output_dir: str, state=None) -> L
         print(f"{k:40} {v}")
 
     print("\n==== UNKNOWN LABELS ====")
-    for k, v in unknown_labels.items():
+    for k, v in sorted(unknown_labels.items(), key=lambda x: -x[1]):
         print(f"{k:40} {v}")
         
     return clean_files
