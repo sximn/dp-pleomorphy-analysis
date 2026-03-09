@@ -19,13 +19,19 @@ def run_pipeline(config: PipelineConfig):
     print(f"WSI Dir:         {config.wsi_dir}")
     print(f"Output Dir:      {config.output_dir}")
     print(f"Interim Dir:     {config.interim_dir}")
+    if config.skip_annotations:
+        print(f"Skipping Annots: {config.skip_annotations}")
     print(f"Segmentation:    {'Enabled' if config.segmentation.enabled else 'Disabled'}")
     
     state = PipelineState()
     
     try:
         # Stage 1: Deduplicate target geojson files
-        unique_files = get_deduped_filepaths(config.annotations_dir, state=state)
+        unique_files = get_deduped_filepaths(
+            config.annotations_dir, 
+            state=state, 
+            skip_annotations=config.skip_annotations
+        )
         
         # Stage 2: Standardize labels inside geojsons
         clean_files = standardize_labels(unique_files, config.interim_dir, state=state)
@@ -54,6 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--wsi_dir", required=True, help="Directory containing WSI (.mrxs) files.")
     parser.add_argument("--output_dir", required=True, help="Directory to save final OME-TIFFs and report.")
     parser.add_argument("--interim_dir", default="", help="Directory to save interim clean geojsons.")
+    parser.add_argument("--skip_annotations", nargs="*", default=[], help="List of annotation file names to skip.")
     
     args = parser.parse_args()
     
@@ -61,7 +68,8 @@ if __name__ == "__main__":
         annotations_dir=args.annotations_dir,
         wsi_dir=args.wsi_dir,
         output_dir=args.output_dir,
-        interim_dir=args.interim_dir
+        interim_dir=args.interim_dir,
+        skip_annotations=args.skip_annotations
     )
     
     run_pipeline(config)

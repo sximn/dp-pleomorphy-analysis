@@ -11,7 +11,7 @@ def file_hash(filepath, hash_algo=hashlib.sha256, chunk_size=4096):
             hash_func.update(chunk)
     return hash_func.hexdigest()
 
-def get_deduped_filepaths(directory: str, state=None) -> List[str]:
+def get_deduped_filepaths(directory: str, state=None, skip_annotations: List[str] = None) -> List[str]:
     """
     Finds unique files in the given directory based on their content hash.
     Records statistics into the state object if provided.
@@ -21,8 +21,11 @@ def get_deduped_filepaths(directory: str, state=None) -> List[str]:
     if not directory_path.exists():
         raise FileNotFoundError(f"Directory not found: {directory}")
         
+    if skip_annotations is None:
+        skip_annotations = []
+        
     # Process only geojson files
-    all_files = [f for f in directory_path.iterdir() if f.is_file() and f.suffix == '.geojson']
+    all_files = [f for f in directory_path.iterdir() if f.is_file() and f.suffix == '.geojson' and f.name not in skip_annotations]
     
     if state:
         state.total_annotations_found = len(all_files)

@@ -26,6 +26,8 @@ class PipelineConfig:
     wsi_dir: str
     output_dir: str
     interim_dir: str = ""  # Directory to store intermediate cleaned annotations
+    # List of annotation file names to skip (e.g. ["corrupted.geojson", "skip_this.geojson"])
+    skip_annotations: List[str] = field(default_factory=list)
     segmentation: SegmentationConfig = field(default_factory=SegmentationConfig)
 
     def __post_init__(self):
